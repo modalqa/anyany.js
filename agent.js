@@ -918,6 +918,67 @@ async function main() {
 }
 
 // =====================
+// QA DOCUMENT PROCESSING
+// =====================
+
+async function processQADocument(filePath, isUrl = false) {
+  let content = '';
+  
+  if (isUrl) {
+    try {
+      const response = await fetch(filePath);
+      content = await response.text();
+    } catch (error) {
+      throw new Error(`Failed to fetch from URL: ${error.message}`);
+    }
+  } else {
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      throw new Error('File not found');
+    }
+
+    const extension = path.extname(filePath).toLowerCase();
+    
+    try {
+      switch (extension) {
+        case '.txt':
+        case '.md':
+          content = fs.readFileSync(filePath, 'utf8');
+          break;
+          
+        case '.docx':
+          throw new Error('DOCX format support requires additional dependencies. Please convert to TXT/MD first.');
+          // Future: Add mammoth.js integration for DOCX
+          
+        case '.json':
+          const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+          content = JSON.stringify(jsonData, null, 2);
+          break;
+          
+        case '.csv':
+          const csvData = fs.readFileSync(filePath, 'utf8');
+          // Simple CSV to text conversion
+          content = csvData.split('\\n')
+            .map(line => line.split(',').join('\\t'))
+            .join('\\n');
+          break;
+          
+        case '.pdf':
+          throw new Error('PDF format support requires additional dependencies. Please convert to TXT/MD first.');
+          // Future: Add pdf-parse integration
+          
+        default:
+          throw new Error('Unsupported file format. Please use TXT, MD, JSON, or CSV files.');
+      }
+    } catch (error) {
+      throw new Error(`Failed to read file: ${error.message}`);
+    }
+  }
+  
+  return content;
+}
+
+// =====================
 // HANDLER FUNCTIONS
 // =====================
 async function handleQuickQuery(sessionManager) {
@@ -1034,6 +1095,7 @@ async function handleCustomTask(sessionManager) {
 
   // Define task options mapping user-friendly names to PROMPTS keys
   const taskOptions = {
+    'QA Document Quality Check': 'QA_DOC_CHECKER',
     'Bug Analysis': 'BUG_ANALYSIS',
     'Test Data Generator': 'TEST_DATA_GENERATOR',
     'Scenario Priority Analysis': 'SCENARIO_PRIORITY_ANALYSIS',
@@ -1049,23 +1111,75 @@ async function handleCustomTask(sessionManager) {
   let input;
   let customPrompt = '';
 
+  // Special handling for QA Document Quality Check
+  if (selectedTaskKey === 'QA_DOC_CHECKER') {
+    console.log('\n� QA Document Input Options:');
+    const inputOptions = [
+      'Direct Text Input',
+      'File Input (.txt, .md, .json, .csv)',
+      'URL Input (GitHub raw, Google Docs public, Notion public)'
+    ];
+    
+    const inputChoice = await selectFromList(inputOptions, "Choose input method:", 0);
+    
+    switch (inputChoice) {
+      case 0: // Direct Text
+        console.log('\n📝 Enter your QA document content. End input with an empty line:');
+        const lines = [];
+        while (true) {
+          const line = await ask('');
+          if (line.trim() === '' && lines.length > 0) break;
+          lines.push(line);
+          if (lines.length === 1 && line.trim() === '') {
+            lines.pop();
+          }
+        }
+        input = lines.join('\n');
+        break;
+        
+      case 1: // File Input
+        const filePath = await ask('\n📁 Enter the path to your QA document: ');
+        try {
+          input = await processQADocument(filePath);
+        } catch (error) {
+          console.log(`❌ Error: ${error.message}`);
+          return;
+        }
+        break;
+        
+      case 2: // URL Input
+        const url = await ask('\n🔗 Enter the URL to your QA document: ');
+        try {
+          input = await processQADocument(url, true);
+        } catch (error) {
+          console.log(`❌ Error: ${error.message}`);
+          return;
+        }
+        break;
+    }
+    
+    if (!input) {
+      console.log("❌ No input provided. Returning to main menu.");
+      return;
+    }
+
   // Special handling for API Contract Test
-  if (selectedTaskKey === 'API_CONTRACT_TEST') {
+  } else if (selectedTaskKey === 'API_CONTRACT_TEST') {
     console.log('\n📝 Enter example JSON payload (you can paste the full object). End input with an empty line:');
     const lines = [];
     while (true) {
-        const line = await ask('');
-        if (line.trim() === '' && lines.length > 0) break;
-        lines.push(line);
-        if (lines.length === 1 && line.trim() === '') {
-            lines.pop(); // Prevent breaking on the very first empty line
-        }
+      const line = await ask('');
+      if (line.trim() === '' && lines.length > 0) break;
+      lines.push(line);
+      if (lines.length === 1 && line.trim() === '') {
+        lines.pop();
+      }
     }
     input = lines.join('\n');
 
     if (!input) {
-        console.log("❌ No input provided. Returning to main menu.");
-        return;
+      console.log("❌ No input provided. Returning to main menu.");
+      return;
     }
 
     try {

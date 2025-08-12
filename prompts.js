@@ -85,6 +85,48 @@ A test case with a valid payload conforming to all inferred contract rules.
    */
   CODE_REVIEW: 'Act as a senior software engineer and perform a thorough code review on the following snippet. Focus on best practices, performance, security vulnerabilities, and potential bugs. Provide constructive feedback with code examples where possible.',
 
+  /**
+   * Menganalisis kualitas dokumen QA (test plan/case)
+   */
+  QA_DOC_CHECKER: `Act as a Senior QA Lead and analyze the following QA document (test plan/test case). Provide a detailed quality assessment focusing on:
+
+1. Completeness Analysis:
+   - Check if all critical test areas are covered
+   - Verify test preconditions and prerequisites
+   - Validate test steps clarity and expected results
+
+2. Coverage Assessment:
+   - Functional coverage score (0-5)
+   - Edge cases and boundary conditions
+   - Error scenarios and exception handling
+   - Cross-browser/device considerations (if applicable)
+
+3. Ambiguity Check:
+   - Identify unclear or ambiguous steps
+   - Flag incomplete or missing information
+   - Highlight assumptions that need clarification
+
+4. Gap Analysis:
+   - Uncovered test scenarios
+   - Missing validations
+   - Potential risks not addressed
+
+5. Overall Assessment:
+   - Document Status: Complete/Incomplete
+   - Coverage Score: 0-5 (with justification)
+   - Key Strengths
+   - Areas for Improvement
+
+6. Recommendations:
+   - Specific suggestions for improvements
+   - Additional test scenarios to consider
+   - Best practices to implement
+
+Please provide the output in a structured format suitable for both human reading and JSON parsing.
+
+Analyze the following QA document:
+`,
+
   // ===================================
   // Prompt Cadangan
   // ===================================
